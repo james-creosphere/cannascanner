@@ -60,8 +60,6 @@ Audit RFID tags using the Zebra RFD40 or compatible RFID reader.
 | Room | The room selected at session start |
 | Auditor | The full name entered at session start |
 
-**Note:** This feature requires the Zebra RFID SDK. See [RFIDAPI3Library/README.md](RFIDAPI3Library/README.md) for setup instructions.
-
 ### Room Selection
 Room is selected from a dropdown menu with predefined options:
 - Vault
