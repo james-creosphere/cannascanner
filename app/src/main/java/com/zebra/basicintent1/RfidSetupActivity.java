@@ -11,6 +11,7 @@ import android.widget.Toast;
 public class RfidSetupActivity extends AppCompatActivity {
 
     private EditText etUserName;
+    private EditText etRoom;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,19 +21,28 @@ public class RfidSetupActivity extends AppCompatActivity {
         setTitle("RFID Tag Audit Setup");
 
         etUserName = findViewById(R.id.etUserName);
+        etRoom = findViewById(R.id.etRoom);
         Button btnStartAudit = findViewById(R.id.btnStartAudit);
 
         btnStartAudit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String userName = etUserName.getText().toString().trim();
+                String room = etRoom.getText().toString().trim();
+                
                 if (userName.isEmpty()) {
-                    Toast.makeText(RfidSetupActivity.this, "Please enter your name", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(RfidSetupActivity.this, "Please enter your full name", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                if (room.isEmpty()) {
+                    Toast.makeText(RfidSetupActivity.this, "Please enter the room", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 Intent intent = new Intent(RfidSetupActivity.this, RfidScanActivity.class);
                 intent.putExtra("USER_NAME", userName);
+                intent.putExtra("ROOM", room);
                 startActivity(intent);
                 finish();
             }

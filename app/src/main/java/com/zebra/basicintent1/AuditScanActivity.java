@@ -19,6 +19,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.os.Environment;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -43,6 +45,7 @@ public class AuditScanActivity extends AppCompatActivity {
     private static final String REPORT_EMAIL = "385501f8.NECraftCultivators.com@amer.teams.ms";
 
     private String userName;
+    private String room;
     private String auditMode;
     private boolean isSpeedMode;
     private List<ScanItem> scanItems;
@@ -58,6 +61,7 @@ public class AuditScanActivity extends AppCompatActivity {
         setContentView(R.layout.activity_audit_scan);
 
         userName = getIntent().getStringExtra("USER_NAME");
+        room = getIntent().getStringExtra("ROOM");
         auditMode = getIntent().getStringExtra(MainActivity.EXTRA_AUDIT_MODE);
         if (auditMode == null) {
             auditMode = MainActivity.MODE_WEIGHT;
@@ -80,7 +84,7 @@ public class AuditScanActivity extends AppCompatActivity {
         Button btnExport = findViewById(R.id.btnExport);
         Button btnFinish = findViewById(R.id.btnFinish);
 
-        tvUserName.setText("Auditor: " + userName);
+        tvUserName.setText("Auditor: " + userName + " | Room: " + room);
         updateScanCount();
 
         // Update instructions based on mode
@@ -335,7 +339,7 @@ public class AuditScanActivity extends AppCompatActivity {
     }
 
     private void addScanItem(String barcodeData, String weight) {
-        ScanItem item = new ScanItem(barcodeData, weight, userName);
+        ScanItem item = new ScanItem(barcodeData, weight, userName, room);
         scanItems.add(0, item); // Add to top of list
         adapter.notifyDataSetChanged();
         updateScanCount();
@@ -360,7 +364,8 @@ public class AuditScanActivity extends AppCompatActivity {
             String modePrefix = isSpeedMode ? "AUDIT-SPEED" : "AUDIT-WEIGHT";
             String fileName = modePrefix + "-" + timestamp + "-" + safeUserName + ".csv";
             
-            File exportDir = new File(getExternalFilesDir(null), "exports");
+            // Save to Downloads folder for easy access
+            File exportDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             if (!exportDir.exists()) {
                 exportDir.mkdirs();
             }
@@ -370,16 +375,20 @@ public class AuditScanActivity extends AppCompatActivity {
             
             // Write header - different for speed mode (no weight column)
             if (isSpeedMode) {
-                writer.append("Barcode,Auditor\n");
+                writer.append("Timestamp,Barcode,Room,Auditor\n");
             } else {
-                writer.append("Barcode,Weight (g),Auditor\n");
+                writer.append("Timestamp,Barcode,Weight (g),Room,Auditor\n");
             }
             
             // Write data (in reverse order so oldest first)
             for (int i = scanItems.size() - 1; i >= 0; i--) {
                 ScanItem item = scanItems.get(i);
                 if (isSpeedMode) {
+                    writer.append(escapeForCsv(item.getTimestamp()));
+                    writer.append(",");
                     writer.append(escapeForCsv(item.getBarcodeData()));
+                    writer.append(",");
+                    writer.append(escapeForCsv(item.getRoom()));
                     writer.append(",");
                     writer.append(escapeForCsv(item.getUserName()));
                 } else {
@@ -391,10 +400,11 @@ public class AuditScanActivity extends AppCompatActivity {
             writer.flush();
             writer.close();
 
-            // Share the file
-            shareFile(file);
+            // Show success with file location
+            Toast.makeText(this, "Saved to Downloads: " + fileName, Toast.LENGTH_LONG).show();
             
-            Toast.makeText(this, "Exported " + scanItems.size() + " items", Toast.LENGTH_SHORT).show();
+            // Optionally share the file
+            shareFile(file);
             
         } catch (IOException e) {
             Toast.makeText(this, "Error exporting: " + e.getMessage(), Toast.LENGTH_LONG).show();

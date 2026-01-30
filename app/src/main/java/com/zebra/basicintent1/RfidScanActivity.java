@@ -1,13 +1,18 @@
 package com.zebra.basicintent1;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -22,16 +27,22 @@ import com.zebra.rfid.api3.ENUM_TRIGGER_MODE;
 import com.zebra.rfid.api3.InvalidUsageException;
 import com.zebra.rfid.api3.OperationFailureException;
 import com.zebra.rfid.api3.RFIDReader;
+import com.zebra.rfid.api3.RFIDResults;
 import com.zebra.rfid.api3.ReaderDevice;
 import com.zebra.rfid.api3.Readers;
+import com.zebra.rfid.api3.RegionInfo;
+import com.zebra.rfid.api3.RegulatoryConfig;
 import com.zebra.rfid.api3.RfidEventsListener;
 import com.zebra.rfid.api3.RfidReadEvents;
 import com.zebra.rfid.api3.RfidStatusEvents;
 import com.zebra.rfid.api3.START_TRIGGER_TYPE;
 import com.zebra.rfid.api3.STATUS_EVENT_TYPE;
 import com.zebra.rfid.api3.STOP_TRIGGER_TYPE;
+import com.zebra.rfid.api3.SupportedRegions;
 import com.zebra.rfid.api3.TagData;
 import com.zebra.rfid.api3.TriggerInfo;
+
+import android.os.Environment;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -48,8 +59,10 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
 
     private static final String TAG = "RfidScanActivity";
     private static final String REPORT_EMAIL = "385501f8.NECraftCultivators.com@amer.teams.ms";
+    private static final int PERMISSION_REQUEST_CODE = 100;
 
     private String userName;
+    private String room;
     private List<ScanItem> scanItems;
     private Set<String> scannedEpcs;
     private ScanItemAdapter adapter;
@@ -75,6 +88,7 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
         setTitle("RFID Tag Audit");
 
         userName = getIntent().getStringExtra("USER_NAME");
+        room = getIntent().getStringExtra("ROOM");
         scanItems = new ArrayList<>();
         scannedEpcs = new HashSet<>();
         uiHandler = new Handler(Looper.getMainLooper());
@@ -88,7 +102,7 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
         Button btnExport = findViewById(R.id.btnExport);
         Button btnFinish = findViewById(R.id.btnFinish);
 
-        tvUserName.setText("Auditor: " + userName);
+        tvUserName.setText("Auditor: " + userName + " | Room: " + room);
         updateScanCount();
         updateReaderStatus("Disconnected");
 
@@ -101,7 +115,11 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
                 if (isReaderConnected) {
                     disconnectReader();
                 } else {
-                    connectReader();
+                    if (checkPermissions()) {
+                        connectReader();
+                    } else {
+                        requestPermissions();
+                    }
                 }
             }
         });
@@ -154,11 +172,80 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
             }
         });
 
-        // Initialize readers
-        initReaders();
+        // Check permissions on startup
+        if (!checkPermissions()) {
+            requestPermissions();
+        }
+    }
+
+    private boolean checkPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+ requires BLUETOOTH_CONNECT and BLUETOOTH_SCAN
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
+        } else {
+            // Older Android versions need location permission for Bluetooth scanning
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        }
+    }
+
+    private void requestPermissions() {
+        List<String> permissionsNeeded = new ArrayList<>();
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.BLUETOOTH_CONNECT);
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.BLUETOOTH_SCAN);
+            }
+        }
+        
+        // Location permissions (needed for Bluetooth on older Android and sometimes for RFID)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        if (!permissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this, 
+                permissionsNeeded.toArray(new String[0]), 
+                PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            
+            if (allGranted) {
+                Toast.makeText(this, "Permissions granted. You can now connect.", Toast.LENGTH_SHORT).show();
+                // Initialize readers after permissions are granted
+                initReaders();
+            } else {
+                Toast.makeText(this, "Bluetooth/Location permissions are required for RFID", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void initReaders() {
+        if (!checkPermissions()) {
+            Log.w(TAG, "Cannot initialize readers - permissions not granted");
+            return;
+        }
+        
         try {
             readers = new Readers(this, ENUM_TRANSPORT.ALL);
             Log.d(TAG, "Readers initialized");
@@ -198,6 +285,9 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
                     }
 
                     if (reader.isConnected()) {
+                        // Configure region first
+                        configureRegion();
+                        // Then configure reader settings
                         configureReader();
                         return null; // Success
                     } else {
@@ -208,6 +298,16 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
                     return "Connection error: " + e.getInfo();
                 } catch (OperationFailureException e) {
                     Log.e(TAG, "OperationFailureException: " + e.getMessage());
+                    // Check if region not configured
+                    if (e.getResults() == RFIDResults.RFID_READER_REGION_NOT_CONFIGURED) {
+                        try {
+                            configureRegion();
+                            configureReader();
+                            return null; // Success after configuring region
+                        } catch (Exception e2) {
+                            return "Region config failed: " + e2.getMessage();
+                        }
+                    }
                     return "Connection failed: " + e.getResults().toString();
                 } catch (Exception e) {
                     Log.e(TAG, "Exception: " + e.getMessage());
@@ -230,6 +330,61 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
                 }
             }
         }.execute();
+    }
+
+    private void configureRegion() throws InvalidUsageException, OperationFailureException {
+        if (reader == null || !reader.isConnected()) return;
+
+        try {
+            // Get supported regions
+            SupportedRegions supportedRegions = reader.ReaderCapabilities.SupportedRegions;
+            int numRegions = supportedRegions.length();
+            
+            Log.d(TAG, "Supported regions: " + numRegions);
+            
+            if (numRegions > 0) {
+                // Try to find North America (NA) region, or use the first available
+                RegionInfo selectedRegion = null;
+                
+                for (int i = 0; i < numRegions; i++) {
+                    RegionInfo region = supportedRegions.getRegionInfo(i);
+                    Log.d(TAG, "Region " + i + ": " + region.getRegionCode() + " - " + region.getName());
+                    
+                    // Prefer NA (North America) or USA region
+                    String code = region.getRegionCode();
+                    if (code != null && (code.equals("NA") || code.equals("USA") || code.contains("FCC"))) {
+                        selectedRegion = region;
+                        break;
+                    }
+                }
+                
+                // If no NA region found, use the first one
+                if (selectedRegion == null) {
+                    selectedRegion = supportedRegions.getRegionInfo(0);
+                }
+                
+                // Configure the region
+                RegulatoryConfig regulatoryConfig = reader.Config.getRegulatoryConfig();
+                regulatoryConfig.setRegion(selectedRegion.getRegionCode());
+                
+                if (selectedRegion.isHoppingConfigurable()) {
+                    regulatoryConfig.setIsHoppingOn(true);
+                }
+                
+                // Set enabled channels
+                String[] channels = selectedRegion.getSupportedChannels();
+                if (channels != null && channels.length > 0) {
+                    regulatoryConfig.setEnabledChannels(channels);
+                }
+                
+                reader.Config.setRegulatoryConfig(regulatoryConfig);
+                
+                Log.d(TAG, "Region configured: " + selectedRegion.getRegionCode() + " - " + selectedRegion.getName());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error configuring region: " + e.getMessage());
+            throw e;
+        }
     }
 
     private void configureReader() throws InvalidUsageException, OperationFailureException {
@@ -370,7 +525,7 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
     }
 
     private void addScanItem(String epc) {
-        ScanItem item = new ScanItem(epc, "", userName);
+        ScanItem item = new ScanItem(epc, "", userName, room);
         scanItems.add(0, item);
         adapter.notifyDataSetChanged();
         updateScanCount();
@@ -401,7 +556,8 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
             String safeUserName = userName.replaceAll("[^a-zA-Z0-9]", "_");
             String fileName = "RFID-AUDIT-" + timestamp + "-" + safeUserName + ".csv";
 
-            File exportDir = new File(getExternalFilesDir(null), "exports");
+            // Save to Downloads folder for easy access
+            File exportDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             if (!exportDir.exists()) {
                 exportDir.mkdirs();
             }
@@ -410,12 +566,16 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
             FileWriter writer = new FileWriter(file);
 
             // Write header
-            writer.append("EPC,Auditor\n");
+            writer.append("Timestamp,EPC,Room,Auditor\n");
 
             // Write data (in reverse order so oldest first)
             for (int i = scanItems.size() - 1; i >= 0; i--) {
                 ScanItem item = scanItems.get(i);
+                writer.append(escapeForCsv(item.getTimestamp()));
+                writer.append(",");
                 writer.append(escapeForCsv(item.getBarcodeData()));
+                writer.append(",");
+                writer.append(escapeForCsv(item.getRoom()));
                 writer.append(",");
                 writer.append(escapeForCsv(item.getUserName()));
                 writer.append("\n");
@@ -424,10 +584,11 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
             writer.flush();
             writer.close();
 
-            // Share the file
-            shareFile(file);
+            // Show success with file location
+            Toast.makeText(this, "Saved to Downloads: " + fileName, Toast.LENGTH_LONG).show();
 
-            Toast.makeText(this, "Exported " + scanItems.size() + " tags", Toast.LENGTH_SHORT).show();
+            // Optionally share the file
+            shareFile(file);
 
         } catch (IOException e) {
             Toast.makeText(this, "Error exporting: " + e.getMessage(), Toast.LENGTH_LONG).show();
