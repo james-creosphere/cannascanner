@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".AuditLogActivity">
+
+    <TextView
+        android:id="@+id/tvHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Audit History"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:padding="16dp"
+        android:background="@color/colorPrimary"
+        android:textColor="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No audits recorded yet"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvHeader" />
+
+    <ListView
+        android:id="@+id/lvAuditLogs"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:divider="@android:color/darker_gray"
+        android:dividerHeight="1dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvHeader" />
+
+</android.support.constraint.ConstraintLayout>

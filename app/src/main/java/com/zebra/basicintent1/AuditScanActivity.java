@@ -451,11 +451,31 @@ public class AuditScanActivity extends AppCompatActivity {
     }
 
     private void uploadToAirtableWithCallback(final String csvFileName) {
-        AirtableConfig config = new AirtableConfig(this);
+        final AirtableConfig config = new AirtableConfig(this);
+        final AuditLogManager logManager = new AuditLogManager(this);
+        final String auditType = isSpeedMode ? "AUDIT-SPEED" : "AUDIT-WEIGHT";
+        final String auditId = logManager.generateId();
+        final String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(new Date());
+        
+        // Create audit log entry
+        final AuditLog auditLog = new AuditLog(
+            auditId,
+            auditType,
+            userName,
+            room,
+            timestamp,
+            csvFileName,
+            scanItems.size(),
+            AuditLog.UploadStatus.PENDING,
+            new ArrayList<>(scanItems)
+        );
         
         if (!config.shouldUpload()) {
             Log.d(TAG, "Airtable upload disabled or not configured");
-            // No Airtable configured, just finish
+            // Save as uploaded since Airtable is not configured
+            auditLog.setUploadStatus(AuditLog.UploadStatus.UPLOADED);
+            auditLog.setScanItems(new ArrayList<ScanItem>()); // Clear items to save space
+            logManager.saveAuditLog(auditLog);
             Toast.makeText(this, "Submitted successfully", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -466,7 +486,8 @@ public class AuditScanActivity extends AppCompatActivity {
             return;
         }
 
-        String auditType = isSpeedMode ? "AUDIT-SPEED" : "AUDIT-WEIGHT";
+        // Save log as pending before upload attempt
+        logManager.saveAuditLog(auditLog);
         
         AirtableUploader uploader = new AirtableUploader(
             config.getApiKey(),
@@ -480,6 +501,7 @@ public class AuditScanActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        logManager.updateUploadStatus(auditId, AuditLog.UploadStatus.UPLOADED, null);
                         Toast.makeText(AuditScanActivity.this,
                             "Uploaded " + recordCount + " records to Airtable",
                             Toast.LENGTH_SHORT).show();
@@ -493,10 +515,11 @@ public class AuditScanActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        logManager.updateUploadStatus(auditId, AuditLog.UploadStatus.FAILED, error);
                         String fileName = csvFileName != null ? csvFileName : "the CSV file";
                         new AlertDialog.Builder(AuditScanActivity.this)
                             .setTitle("Airtable Upload Failed")
-                            .setMessage("Airtable upload failed, please upload CSV manually:\n\n" + fileName)
+                            .setMessage("Airtable upload failed, please upload CSV manually:\n\n" + fileName + "\n\nYou can retry from the Audit Log screen.")
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {

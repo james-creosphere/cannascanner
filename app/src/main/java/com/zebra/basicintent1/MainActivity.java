@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnAuditWeight = findViewById(R.id.btnAuditWeight);
         Button btnAuditSpeed = findViewById(R.id.btnAuditSpeed);
         Button btnRfidTagAudit = findViewById(R.id.btnRfidTagAudit);
+        Button btnAuditLog = findViewById(R.id.btnAuditLog);
         Button btnSettings = findViewById(R.id.btnSettings);
         tvAirtableStatus = findViewById(R.id.tvAirtableStatus);
 
@@ -51,6 +52,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, RfidSetupActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        btnAuditLog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AuditLogActivity.class);
                 startActivity(intent);
             }
         });

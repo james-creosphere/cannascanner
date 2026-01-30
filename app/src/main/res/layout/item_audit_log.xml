@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvAuditType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AUDIT-WEIGHT"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvAuditDetails"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="John Doe | Vault | 15 scans"
+            android:textSize="13sp"
+            android:textColor="#666666"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/tvAuditTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2026-01-30 14:30"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Uploaded"
+            android:textSize="12sp"
+            android:textColor="#4CAF50"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Retry"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:minHeight="36dp"
+            android:minWidth="80dp"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
