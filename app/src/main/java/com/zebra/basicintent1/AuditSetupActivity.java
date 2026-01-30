@@ -6,18 +6,37 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class AuditSetupActivity extends AppCompatActivity {
 
     private EditText etUserName;
+    private String auditMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audit_setup);
 
-        setTitle("Audit Setup");
+        auditMode = getIntent().getStringExtra(MainActivity.EXTRA_AUDIT_MODE);
+        if (auditMode == null) {
+            auditMode = MainActivity.MODE_WEIGHT;
+        }
+
+        // Set title based on mode
+        if (MainActivity.MODE_SPEED.equals(auditMode)) {
+            setTitle("Audit-Speed Setup");
+        } else {
+            setTitle("Audit-Weight Setup");
+        }
+
+        TextView tvInstructions = findViewById(R.id.tvInstructions);
+        if (MainActivity.MODE_SPEED.equals(auditMode)) {
+            tvInstructions.setText("Enter your name to begin speed audit (no weight entry)");
+        } else {
+            tvInstructions.setText("Enter your name to begin the audit session");
+        }
 
         etUserName = findViewById(R.id.etUserName);
         Button btnStartAudit = findViewById(R.id.btnStartAudit);
@@ -33,6 +52,7 @@ public class AuditSetupActivity extends AppCompatActivity {
 
                 Intent intent = new Intent(AuditSetupActivity.this, AuditScanActivity.class);
                 intent.putExtra("USER_NAME", userName);
+                intent.putExtra(MainActivity.EXTRA_AUDIT_MODE, auditMode);
                 startActivity(intent);
                 finish();
             }

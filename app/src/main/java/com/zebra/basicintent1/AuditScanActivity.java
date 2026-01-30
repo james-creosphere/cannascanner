@@ -34,17 +34,19 @@ public class AuditScanActivity extends AppCompatActivity {
     
     // DataWedge constants
     private static final String ACTION_DATAWEDGE = "com.symbol.datawedge.api.ACTION";
-    private static final String EXTRA_SOFTSCANTRIGGER = "com.symbol.datawedge.api.SOFT_SCAN_TRIGGER";
     
     // Intent action for receiving scans
     private static final String SCAN_ACTION = "com.zebra.cannascanner.SCAN";
     private static final String PROFILE_NAME = "CannaScanner";
 
     private String userName;
+    private String auditMode;
+    private boolean isSpeedMode;
     private List<ScanItem> scanItems;
     private ScanItemAdapter adapter;
     private TextView tvUserName;
     private TextView tvScanCount;
+    private TextView tvInstructions;
     private ListView lvScans;
 
     @Override
@@ -52,19 +54,38 @@ public class AuditScanActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audit_scan);
 
-        setTitle("Audit Session");
-
         userName = getIntent().getStringExtra("USER_NAME");
+        auditMode = getIntent().getStringExtra(MainActivity.EXTRA_AUDIT_MODE);
+        if (auditMode == null) {
+            auditMode = MainActivity.MODE_WEIGHT;
+        }
+        isSpeedMode = MainActivity.MODE_SPEED.equals(auditMode);
+
+        // Set title based on mode
+        if (isSpeedMode) {
+            setTitle("Audit-Speed Session");
+        } else {
+            setTitle("Audit-Weight Session");
+        }
+
         scanItems = new ArrayList<>();
 
         tvUserName = findViewById(R.id.tvUserName);
         tvScanCount = findViewById(R.id.tvScanCount);
+        tvInstructions = findViewById(R.id.tvInstructions);
         lvScans = findViewById(R.id.lvScans);
         Button btnExport = findViewById(R.id.btnExport);
         Button btnFinish = findViewById(R.id.btnFinish);
 
         tvUserName.setText("Auditor: " + userName);
         updateScanCount();
+
+        // Update instructions based on mode
+        if (isSpeedMode) {
+            tvInstructions.setText("Speed mode: Scan barcodes rapidly (no weight entry)");
+        } else {
+            tvInstructions.setText("Scan a barcode to add it to the audit list");
+        }
 
         adapter = new ScanItemAdapter(this, scanItems);
         lvScans.setAdapter(adapter);
@@ -254,7 +275,7 @@ public class AuditScanActivity extends AppCompatActivity {
                 Log.d(TAG, "Barcode data: " + barcodeData);
                 
                 if (barcodeData != null && !barcodeData.isEmpty()) {
-                    showWeightDialog(barcodeData);
+                    handleScan(barcodeData);
                 } else {
                     Toast.makeText(AuditScanActivity.this, 
                         "Scan received but no data found", Toast.LENGTH_SHORT).show();
@@ -262,6 +283,21 @@ public class AuditScanActivity extends AppCompatActivity {
             }
         }
     };
+
+    private void handleScan(final String barcodeData) {
+        if (isSpeedMode) {
+            // Speed mode: add directly without weight dialog
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    addScanItem(barcodeData, "");
+                }
+            });
+        } else {
+            // Weight mode: show dialog to enter weight
+            showWeightDialog(barcodeData);
+        }
+    }
 
     private void showWeightDialog(final String barcodeData) {
         runOnUiThread(new Runnable() {
@@ -318,7 +354,8 @@ public class AuditScanActivity extends AppCompatActivity {
         try {
             String timestamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm", Locale.US).format(new Date());
             String safeUserName = userName.replaceAll("[^a-zA-Z0-9]", "_");
-            String fileName = "AUDIT-" + timestamp + "-" + safeUserName + ".csv";
+            String modePrefix = isSpeedMode ? "AUDIT-SPEED" : "AUDIT-WEIGHT";
+            String fileName = modePrefix + "-" + timestamp + "-" + safeUserName + ".csv";
             
             File exportDir = new File(getExternalFilesDir(null), "exports");
             if (!exportDir.exists()) {
@@ -328,12 +365,23 @@ public class AuditScanActivity extends AppCompatActivity {
             File file = new File(exportDir, fileName);
             FileWriter writer = new FileWriter(file);
             
-            // Write header
-            writer.append("Barcode,Weight (g),Auditor\n");
+            // Write header - different for speed mode (no weight column)
+            if (isSpeedMode) {
+                writer.append("Barcode,Auditor\n");
+            } else {
+                writer.append("Barcode,Weight (g),Auditor\n");
+            }
             
             // Write data (in reverse order so oldest first)
             for (int i = scanItems.size() - 1; i >= 0; i--) {
-                writer.append(scanItems.get(i).toCsvRow());
+                ScanItem item = scanItems.get(i);
+                if (isSpeedMode) {
+                    writer.append(escapeForCsv(item.getBarcodeData()));
+                    writer.append(",");
+                    writer.append(escapeForCsv(item.getUserName()));
+                } else {
+                    writer.append(item.toCsvRow());
+                }
                 writer.append("\n");
             }
             
@@ -348,6 +396,16 @@ public class AuditScanActivity extends AppCompatActivity {
         } catch (IOException e) {
             Toast.makeText(this, "Error exporting: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private String escapeForCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     private void shareFile(File file) {

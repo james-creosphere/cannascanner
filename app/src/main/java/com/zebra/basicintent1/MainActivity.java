@@ -8,18 +8,33 @@ import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String EXTRA_AUDIT_MODE = "AUDIT_MODE";
+    public static final String MODE_WEIGHT = "weight";
+    public static final String MODE_SPEED = "speed";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button btnAudit = findViewById(R.id.btnAudit);
+        Button btnAuditWeight = findViewById(R.id.btnAuditWeight);
+        Button btnAuditSpeed = findViewById(R.id.btnAuditSpeed);
         Button btnTagScanner = findViewById(R.id.btnTagScanner);
 
-        btnAudit.setOnClickListener(new View.OnClickListener() {
+        btnAuditWeight.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, AuditSetupActivity.class);
+                intent.putExtra(EXTRA_AUDIT_MODE, MODE_WEIGHT);
+                startActivity(intent);
+            }
+        });
+
+        btnAuditSpeed.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AuditSetupActivity.class);
+                intent.putExtra(EXTRA_AUDIT_MODE, MODE_SPEED);
                 startActivity(intent);
             }
         });

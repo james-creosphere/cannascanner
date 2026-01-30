@@ -4,20 +4,34 @@ A barcode scanning application for Zebra Android devices using DataWedge.
 
 ## Features
 
-### Audit Mode
-Perform inventory audits with barcode scanning and optional weight entry.
+### Audit-Weight Mode
+Perform inventory audits with barcode scanning and weight entry.
 
 - Enter your name at the start of an audit session
 - Scan barcodes using the device's hardware scanner
-- Optionally enter weight (in grams) after each scan
+- Enter weight (in grams) after each scan (optional)
 - View all scanned items in a list
-- Export to CSV with the format: `AUDIT-YYYY-MM-DD-HH-MM-Username.csv`
+- Export to CSV with the format: `AUDIT-WEIGHT-YYYY-MM-DD-HH-MM-Username.csv`
 
 **CSV Output Columns:**
 | Column | Description |
 |--------|-------------|
 | Barcode | The scanned barcode data |
 | Weight (g) | Weight in grams (if entered) |
+| Auditor | The user name entered at session start |
+
+### Audit-Speed Mode
+Rapid barcode scanning without weight entry prompts.
+
+- Enter your name at the start of an audit session
+- Scan barcodes rapidly - items are added immediately with no dialogs
+- View all scanned items in a list
+- Export to CSV with the format: `AUDIT-SPEED-YYYY-MM-DD-HH-MM-Username.csv`
+
+**CSV Output Columns:**
+| Column | Description |
+|--------|-------------|
+| Barcode | The scanned barcode data |
 | Auditor | The user name entered at session start |
 
 ### Tag Scanner Mode

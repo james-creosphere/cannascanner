@@ -31,16 +31,28 @@
         app:layout_constraintTop_toBottomOf="@id/tvTitle" />
 
     <Button
-        android:id="@+id/btnAudit"
+        android:id="@+id/btnAuditWeight"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Audit"
+        android:text="Audit-Weight"
         android:textSize="20sp"
         android:padding="16dp"
         android:layout_marginTop="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvSubtitle" />
+
+    <Button
+        android:id="@+id/btnAuditSpeed"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Audit-Speed"
+        android:textSize="20sp"
+        android:padding="16dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnAuditWeight" />
 
     <Button
         android:id="@+id/btnTagScanner"
@@ -52,6 +64,6 @@
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnAudit" />
+        app:layout_constraintTop_toBottomOf="@id/btnAuditSpeed" />
 
 </android.support.constraint.ConstraintLayout>
