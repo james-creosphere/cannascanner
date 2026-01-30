@@ -34,8 +34,21 @@ Rapid barcode scanning without weight entry prompts.
 | Barcode | The scanned barcode data |
 | Auditor | The user name entered at session start |
 
-### Tag Scanner Mode
-*Coming Soon*
+### RFID Tag Audit Mode
+Audit RFID tags using the Zebra RFD40 or compatible RFID reader.
+
+- Enter your name at the start of an audit session
+- Connect to RFID reader (RFD40 via Bluetooth or USB)
+- Scan RFID tags - unique EPCs are captured automatically
+- Export to CSV with the format: `RFID-AUDIT-YYYY-MM-DD-HH-MM-Username.csv`
+
+**CSV Output Columns:**
+| Column | Description |
+|--------|-------------|
+| EPC | The RFID tag EPC (Electronic Product Code) |
+| Auditor | The user name entered at session start |
+
+**Note:** This feature requires the Zebra RFID SDK. See [RFIDAPI3Library/README.md](RFIDAPI3Library/README.md) for setup instructions.
 
 ## Requirements
 

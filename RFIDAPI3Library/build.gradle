@@ -1,0 +1,12 @@
+// Zebra RFID SDK Library
+// 
+// To enable RFID functionality:
+// 1. Download the Zebra RFID SDK from: 
+//    https://www.zebra.com/us/en/support-downloads/software/rfid-software/rfid-sdk-for-android.html
+// 2. Extract the AAR file from the downloaded package
+// 3. Copy the AAR file to this folder and rename it to 'API3_LIB-release.aar'
+// 4. Uncomment the lines below
+// 5. Rebuild the project
+
+configurations.maybeCreate("default")
+artifacts.add("default", file('API3_LIB-release.aar'))

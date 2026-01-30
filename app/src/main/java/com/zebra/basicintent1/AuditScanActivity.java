@@ -38,6 +38,9 @@ public class AuditScanActivity extends AppCompatActivity {
     // Intent action for receiving scans
     private static final String SCAN_ACTION = "com.zebra.cannascanner.SCAN";
     private static final String PROFILE_NAME = "CannaScanner";
+    
+    // Email recipient for audit reports
+    private static final String REPORT_EMAIL = "385501f8.NECraftCultivators.com@amer.teams.ms";
 
     private String userName;
     private String auditMode;
@@ -412,11 +415,24 @@ public class AuditScanActivity extends AppCompatActivity {
         Uri uri = FileProvider.getUriForFile(this, 
             getPackageName() + ".fileprovider", file);
         
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/csv");
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // Create email intent with pre-filled recipient
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.setType("message/rfc822");
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{REPORT_EMAIL});
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Audit Report: " + file.getName());
+        emailIntent.putExtra(Intent.EXTRA_TEXT, "Please find attached the audit report.\n\nAuditor: " + userName + "\nItems scanned: " + scanItems.size());
+        emailIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         
-        startActivity(Intent.createChooser(shareIntent, "Export Audit CSV"));
+        try {
+            startActivity(Intent.createChooser(emailIntent, "Send Audit Report"));
+        } catch (android.content.ActivityNotFoundException e) {
+            // Fallback to generic share if no email app
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/csv");
+            shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(shareIntent, "Export Audit CSV"));
+        }
     }
 }

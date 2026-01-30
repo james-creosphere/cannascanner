@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button btnAuditWeight = findViewById(R.id.btnAuditWeight);
         Button btnAuditSpeed = findViewById(R.id.btnAuditSpeed);
-        Button btnTagScanner = findViewById(R.id.btnTagScanner);
+        Button btnRfidTagAudit = findViewById(R.id.btnRfidTagAudit);
 
         btnAuditWeight.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -39,10 +39,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnTagScanner.setOnClickListener(new View.OnClickListener() {
+        btnRfidTagAudit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, TagScannerActivity.class);
+                Intent intent = new Intent(MainActivity.this, RfidSetupActivity.class);
                 startActivity(intent);
             }
         });

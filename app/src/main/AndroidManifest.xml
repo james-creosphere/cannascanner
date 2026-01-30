@@ -27,7 +27,11 @@
             android:exported="false" />
 
         <activity
-            android:name=".TagScannerActivity"
+            android:name=".RfidSetupActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".RfidScanActivity"
             android:exported="false" />
 
         <provider
