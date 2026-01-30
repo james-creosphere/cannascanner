@@ -5,53 +5,42 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="24dp"
-    tools:context=".MainActivity">
+    tools:context=".AuditSetupActivity">
 
     <TextView
-        android:id="@+id/tvTitle"
+        android:id="@+id/tvInstructions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="28sp"
-        android:textStyle="bold"
+        android:text="Enter your name to begin the audit session"
+        android:textSize="18sp"
         android:layout_marginTop="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/tvSubtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select an action"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
-
-    <Button
-        android:id="@+id/btnAudit"
+    <EditText
+        android:id="@+id/etUserName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Audit"
-        android:textSize="20sp"
+        android:hint="Your Name"
+        android:inputType="textPersonName"
+        android:textSize="18sp"
         android:padding="16dp"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle" />
+        app:layout_constraintTop_toBottomOf="@id/tvInstructions" />
 
     <Button
-        android:id="@+id/btnTagScanner"
+        android:id="@+id/btnStartAudit"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Tag Scanner"
+        android:text="Start Audit"
         android:textSize="20sp"
         android:padding="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnAudit" />
+        app:layout_constraintTop_toBottomOf="@id/etUserName" />
 
 </android.support.constraint.ConstraintLayout>
