@@ -1,6 +1,6 @@
 # CannaScanner
 
-A barcode and RFID scanning application for Zebra Android devices using DataWedge and the Zebra RFID SDK.
+A barcode and RFID scanning application for Zebra Android devices using DataWedge and the Zebra RFID SDK, with automatic Airtable integration.
 
 ## Features
 
@@ -12,7 +12,8 @@ Perform inventory audits with barcode scanning and optional weight entry.
 - Enter weight (in grams) after each scan (optional)
 - Each scan is timestamped automatically
 - View all scanned items in a list
-- Export to CSV saved in the **Downloads** folder: `AUDIT-WEIGHT-YYYY-MM-DD-HH-MM-Username.csv`
+- **Submit** to save CSV and upload to Airtable automatically
+- **Reset** to clear all scans and start over
 
 **CSV Output Columns:**
 | Column | Description |
@@ -30,7 +31,8 @@ Rapid barcode scanning without weight entry prompts.
 - Scan barcodes rapidly - items are added immediately with no dialogs
 - Each scan is timestamped automatically
 - View all scanned items in a list
-- Export to CSV saved in the **Downloads** folder: `AUDIT-SPEED-YYYY-MM-DD-HH-MM-Username.csv`
+- **Submit** to save CSV and upload to Airtable automatically
+- **Reset** to clear all scans and start over
 
 **CSV Output Columns:**
 | Column | Description |
@@ -47,7 +49,8 @@ Audit RFID tags using the Zebra RFD40 or compatible RFID reader.
 - Connect to RFID reader (RFD40 via Bluetooth or USB)
 - Scan RFID tags - unique EPCs are captured automatically
 - Each scan is timestamped automatically
-- Export to CSV saved in the **Downloads** folder: `RFID-AUDIT-YYYY-MM-DD-HH-MM-Username.csv`
+- **Submit** to save CSV and upload to Airtable automatically
+- **Reset** to clear all scans and start over
 
 **CSV Output Columns:**
 | Column | Description |
@@ -58,6 +61,34 @@ Audit RFID tags using the Zebra RFD40 or compatible RFID reader.
 | Auditor | The full name entered at session start |
 
 **Note:** This feature requires the Zebra RFID SDK. See [RFIDAPI3Library/README.md](RFIDAPI3Library/README.md) for setup instructions.
+
+### Airtable Integration
+Automatically upload scan data to Airtable for centralized tracking and reporting.
+
+- Configure once in **Settings** - credentials are saved on device
+- All audit types automatically upload to Airtable on Submit
+- If upload fails, a dialog shows the CSV filename for manual upload
+- CSV is always saved to Downloads as a backup
+
+**Required Airtable Table Columns:**
+| Column | Field Type |
+|--------|------------|
+| Timestamp | Single line text |
+| Barcode | Single line text |
+| Room | Single line text |
+| Auditor | Single line text |
+| AuditType | Single line text |
+| Weight | Number (optional, for Weight audits) |
+
+**Setup:**
+1. Create an Airtable base with a table containing the columns above
+2. Generate a Personal Access Token at https://airtable.com/create/tokens
+3. In CannaScanner, tap **Settings** and enter:
+   - API Key (Personal Access Token)
+   - Base ID (from your Airtable URL: `airtable.com/appXXXXXX/...`)
+   - Table Name
+4. Toggle **Enable Airtable Upload** on
+5. Tap **Test Connection** to verify, then **Save Settings**
 
 ## CSV File Location
 
@@ -71,6 +102,7 @@ All CSV exports are saved to the device's **Downloads** folder for easy access:
 - Zebra Android device with DataWedge
 - Android 8.0 (API 26) or higher
 - For RFID: Zebra RFD40 or compatible RFID reader
+- For Airtable: Internet connectivity and Airtable account
 
 ## Installation
 
@@ -103,8 +135,8 @@ If you experience issues, you can manually verify the profile in the DataWedge a
 4. Scan barcodes:
    - Weight mode: A dialog appears after each scan to optionally enter weight
    - Speed mode: Items are added immediately
-5. Tap **Export CSV** to save and share the audit data
-6. Tap **Finish** when done
+5. Tap **Submit** to save CSV and upload to Airtable
+6. Tap **Reset** to clear all scans if needed
 
 ### RFID Audits
 1. Launch **CannaScanner**
@@ -113,11 +145,12 @@ If you experience issues, you can manually verify the profile in the DataWedge a
 4. Tap **Connect** to connect to the RFID reader
 5. Tap **Start Scan** to begin reading tags
 6. Tap **Stop Scan** when done scanning
-7. Tap **Export CSV** to save and share the audit data
+7. Tap **Submit** to save CSV and upload to Airtable
 
 ## Permissions
 
 The app requires the following permissions:
+- **Internet**: For Airtable API uploads
 - **Storage**: To save CSV files to Downloads
 - **Bluetooth**: For RFID reader connectivity
 - **Location**: Required by Android for Bluetooth scanning

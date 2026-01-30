@@ -99,8 +99,8 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
         lvScans = findViewById(R.id.lvScans);
         btnConnect = findViewById(R.id.btnConnect);
         btnStartScan = findViewById(R.id.btnStartScan);
-        Button btnExport = findViewById(R.id.btnExport);
-        Button btnFinish = findViewById(R.id.btnFinish);
+        Button btnReset = findViewById(R.id.btnReset);
+        Button btnSubmit = findViewById(R.id.btnSubmit);
 
         tvUserName.setText("Auditor: " + userName + " | Room: " + room);
         updateScanCount();
@@ -136,39 +136,45 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
         });
         btnStartScan.setEnabled(false);
 
-        btnExport.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                exportToCsv();
-            }
-        });
-
-        btnFinish.setOnClickListener(new View.OnClickListener() {
+        btnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (scanItems.isEmpty()) {
-                    finish();
+                    Toast.makeText(RfidScanActivity.this, "Nothing to reset", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                new AlertDialog.Builder(RfidScanActivity.this)
+                    .setTitle("Reset Audit")
+                    .setMessage("Are you sure you want to clear all " + scanItems.size() + " scans?")
+                    .setPositiveButton("Reset", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            scanItems.clear();
+                            scannedEpcs.clear();
+                            adapter.notifyDataSetChanged();
+                            updateScanCount();
+                            Toast.makeText(RfidScanActivity.this, "Audit reset", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            }
+        });
+
+        btnSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (scanItems.isEmpty()) {
+                    Toast.makeText(RfidScanActivity.this, "No scans to submit", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                new AlertDialog.Builder(RfidScanActivity.this)
-                    .setTitle("Finish RFID Audit")
-                    .setMessage("Would you like to export the CSV before finishing?")
-                    .setPositiveButton("Export & Finish", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            exportToCsv();
-                            finish();
-                        }
-                    })
-                    .setNegativeButton("Just Finish", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            finish();
-                        }
-                    })
-                    .setNeutralButton("Cancel", null)
-                    .show();
+                // Export CSV first
+                final String csvFileName = exportToCsvAndGetFilename();
+                
+                // Then upload to Airtable
+                uploadToAirtableWithCallback(csvFileName);
             }
         });
 
@@ -545,10 +551,9 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
         });
     }
 
-    private void exportToCsv() {
+    private String exportToCsvAndGetFilename() {
         if (scanItems.isEmpty()) {
-            Toast.makeText(this, "No tags to export", Toast.LENGTH_SHORT).show();
-            return;
+            return null;
         }
 
         try {
@@ -587,11 +592,11 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
             // Show success with file location
             Toast.makeText(this, "Saved to Downloads: " + fileName, Toast.LENGTH_LONG).show();
 
-            // Optionally share the file
-            shareFile(file);
+            return fileName;
 
         } catch (IOException e) {
             Toast.makeText(this, "Error exporting: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            return null;
         }
     }
 
@@ -626,6 +631,65 @@ public class RfidScanActivity extends AppCompatActivity implements RfidEventsLis
             shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(shareIntent, "Export RFID Audit CSV"));
         }
+    }
+
+    private void uploadToAirtableWithCallback(final String csvFileName) {
+        AirtableConfig config = new AirtableConfig(this);
+        
+        if (!config.shouldUpload()) {
+            Log.d(TAG, "Airtable upload disabled or not configured");
+            // No Airtable configured, just finish
+            Toast.makeText(this, "Submitted successfully", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        if (scanItems.isEmpty()) {
+            finish();
+            return;
+        }
+
+        AirtableUploader uploader = new AirtableUploader(
+            config.getApiKey(),
+            config.getBaseId(),
+            config.getTableName()
+        );
+
+        uploader.uploadScans(scanItems, "RFID-AUDIT", new AirtableUploader.UploadCallback() {
+            @Override
+            public void onSuccess(final int recordCount) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(RfidScanActivity.this,
+                            "Uploaded " + recordCount + " records to Airtable",
+                            Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(final String error) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String fileName = csvFileName != null ? csvFileName : "the CSV file";
+                        new AlertDialog.Builder(RfidScanActivity.this)
+                            .setTitle("Airtable Upload Failed")
+                            .setMessage("Airtable upload failed, please upload CSV manually:\n\n" + fileName)
+                            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    finish();
+                                }
+                            })
+                            .setCancelable(false)
+                            .show();
+                    }
+                });
+            }
+        });
     }
 
     @Override

@@ -117,19 +117,19 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <Button
-            android:id="@+id/btnExport"
+            android:id="@+id/btnReset"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Export CSV"
+            android:text="Reset"
             android:layout_marginEnd="8dp" />
 
         <Button
-            android:id="@+id/btnFinish"
+            android:id="@+id/btnSubmit"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Finish"
+            android:text="Submit"
             android:layout_marginStart="8dp" />
 
     </LinearLayout>
