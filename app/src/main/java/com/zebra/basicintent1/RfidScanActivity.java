@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -16,20 +17,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-// NOTE: Uncomment the RFID SDK imports after adding the SDK to the project
-// See RFIDAPI3Library/README.md for setup instructions
-/*
 import com.zebra.rfid.api3.ENUM_TRANSPORT;
 import com.zebra.rfid.api3.ENUM_TRIGGER_MODE;
 import com.zebra.rfid.api3.InvalidUsageException;
@@ -45,15 +32,22 @@ import com.zebra.rfid.api3.STATUS_EVENT_TYPE;
 import com.zebra.rfid.api3.STOP_TRIGGER_TYPE;
 import com.zebra.rfid.api3.TagData;
 import com.zebra.rfid.api3.TriggerInfo;
-*/
 
-public class RfidScanActivity extends AppCompatActivity {
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+public class RfidScanActivity extends AppCompatActivity implements RfidEventsListener {
 
     private static final String TAG = "RfidScanActivity";
     private static final String REPORT_EMAIL = "385501f8.NECraftCultivators.com@amer.teams.ms";
-    
-    // Set to true once the RFID SDK is added to the project
-    private static final boolean RFID_SDK_AVAILABLE = false;
 
     private String userName;
     private List<ScanItem> scanItems;
@@ -66,6 +60,9 @@ public class RfidScanActivity extends AppCompatActivity {
     private Button btnConnect;
     private Button btnStartScan;
 
+    // RFID Reader
+    private Readers readers;
+    private RFIDReader reader;
     private boolean isReaderConnected = false;
     private boolean isInventoryRunning = false;
     private Handler uiHandler;
@@ -93,46 +90,33 @@ public class RfidScanActivity extends AppCompatActivity {
 
         tvUserName.setText("Auditor: " + userName);
         updateScanCount();
+        updateReaderStatus("Disconnected");
 
         adapter = new ScanItemAdapter(this, scanItems);
         lvScans.setAdapter(adapter);
 
-        if (!RFID_SDK_AVAILABLE) {
-            // SDK not yet installed - show setup message
-            updateReaderStatus("SDK Not Installed");
-            btnConnect.setEnabled(false);
-            btnStartScan.setEnabled(false);
-            
-            TextView tvInstructions = findViewById(R.id.tvInstructions);
-            tvInstructions.setText("RFID SDK required. See RFIDAPI3Library/README.md for setup instructions.");
-            
-            Toast.makeText(this, "RFID SDK not installed. Please download from Zebra.", Toast.LENGTH_LONG).show();
-        } else {
-            updateReaderStatus("Disconnected");
-            btnStartScan.setEnabled(false);
-            
-            btnConnect.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (isReaderConnected) {
-                        disconnectReader();
-                    } else {
-                        connectReader();
-                    }
+        btnConnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isReaderConnected) {
+                    disconnectReader();
+                } else {
+                    connectReader();
                 }
-            });
+            }
+        });
 
-            btnStartScan.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (isInventoryRunning) {
-                        stopInventory();
-                    } else {
-                        startInventory();
-                    }
+        btnStartScan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isInventoryRunning) {
+                    stopInventory();
+                } else {
+                    startInventory();
                 }
-            });
-        }
+            }
+        });
+        btnStartScan.setEnabled(false);
 
         btnExport.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -169,37 +153,221 @@ public class RfidScanActivity extends AppCompatActivity {
                     .show();
             }
         });
+
+        // Initialize readers
+        initReaders();
     }
 
-    // ========== RFID SDK Methods ==========
-    // These methods require the Zebra RFID SDK to be installed.
-    // Uncomment and enable once SDK is added.
+    private void initReaders() {
+        try {
+            readers = new Readers(this, ENUM_TRANSPORT.ALL);
+            Log.d(TAG, "Readers initialized");
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing readers: " + e.getMessage());
+            Toast.makeText(this, "Error initializing RFID: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
 
     private void connectReader() {
-        if (!RFID_SDK_AVAILABLE) {
-            Toast.makeText(this, "RFID SDK not installed", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        // TODO: Implement when SDK is available
-        // See full implementation in the commented code block at the end of this file
+        new AsyncTask<Void, Void, String>() {
+            @Override
+            protected void onPreExecute() {
+                updateReaderStatus("Connecting...");
+                btnConnect.setEnabled(false);
+            }
+
+            @Override
+            protected String doInBackground(Void... voids) {
+                try {
+                    if (readers == null) {
+                        readers = new Readers(RfidScanActivity.this, ENUM_TRANSPORT.ALL);
+                    }
+
+                    ArrayList<ReaderDevice> availableReaders = readers.GetAvailableRFIDReaderList();
+                    
+                    if (availableReaders == null || availableReaders.isEmpty()) {
+                        return "No RFID readers found. Please connect RFD40.";
+                    }
+
+                    // Connect to the first available reader
+                    ReaderDevice readerDevice = availableReaders.get(0);
+                    reader = readerDevice.getRFIDReader();
+                    
+                    if (!reader.isConnected()) {
+                        reader.connect();
+                    }
+
+                    if (reader.isConnected()) {
+                        configureReader();
+                        return null; // Success
+                    } else {
+                        return "Failed to connect to reader";
+                    }
+                } catch (InvalidUsageException e) {
+                    Log.e(TAG, "InvalidUsageException: " + e.getMessage());
+                    return "Connection error: " + e.getInfo();
+                } catch (OperationFailureException e) {
+                    Log.e(TAG, "OperationFailureException: " + e.getMessage());
+                    return "Connection failed: " + e.getResults().toString();
+                } catch (Exception e) {
+                    Log.e(TAG, "Exception: " + e.getMessage());
+                    return "Error: " + e.getMessage();
+                }
+            }
+
+            @Override
+            protected void onPostExecute(String error) {
+                btnConnect.setEnabled(true);
+                if (error == null) {
+                    isReaderConnected = true;
+                    updateReaderStatus("Connected: " + reader.getHostName());
+                    btnConnect.setText("Disconnect");
+                    btnStartScan.setEnabled(true);
+                    Toast.makeText(RfidScanActivity.this, "Reader connected", Toast.LENGTH_SHORT).show();
+                } else {
+                    updateReaderStatus("Disconnected");
+                    Toast.makeText(RfidScanActivity.this, error, Toast.LENGTH_LONG).show();
+                }
+            }
+        }.execute();
+    }
+
+    private void configureReader() throws InvalidUsageException, OperationFailureException {
+        if (reader == null || !reader.isConnected()) return;
+
+        // Set up trigger mode
+        TriggerInfo triggerInfo = new TriggerInfo();
+        triggerInfo.StartTrigger.setTriggerType(START_TRIGGER_TYPE.START_TRIGGER_TYPE_IMMEDIATE);
+        triggerInfo.StopTrigger.setTriggerType(STOP_TRIGGER_TYPE.STOP_TRIGGER_TYPE_IMMEDIATE);
+
+        // Set up event listener
+        reader.Events.addEventsListener(this);
+        reader.Events.setInventoryStartEvent(true);
+        reader.Events.setInventoryStopEvent(true);
+        reader.Events.setTagReadEvent(true);
+        reader.Events.setAttachTagDataWithReadEvent(true);
+        
+        // Configure for handheld trigger
+        reader.Config.setTriggerMode(ENUM_TRIGGER_MODE.RFID_MODE, true);
+
+        Log.d(TAG, "Reader configured");
     }
 
     private void disconnectReader() {
-        if (!RFID_SDK_AVAILABLE) return;
-        // TODO: Implement when SDK is available
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                try {
+                    if (reader != null) {
+                        if (isInventoryRunning) {
+                            reader.Actions.Inventory.stop();
+                        }
+                        reader.Events.removeEventsListener(RfidScanActivity.this);
+                        reader.disconnect();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error disconnecting: " + e.getMessage());
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                isReaderConnected = false;
+                isInventoryRunning = false;
+                updateReaderStatus("Disconnected");
+                btnConnect.setText("Connect");
+                btnStartScan.setText("Start Scanning");
+                btnStartScan.setEnabled(false);
+                Toast.makeText(RfidScanActivity.this, "Reader disconnected", Toast.LENGTH_SHORT).show();
+            }
+        }.execute();
     }
 
     private void startInventory() {
-        if (!RFID_SDK_AVAILABLE) return;
-        // TODO: Implement when SDK is available
+        if (reader == null || !reader.isConnected()) {
+            Toast.makeText(this, "Reader not connected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            reader.Actions.Inventory.perform();
+            isInventoryRunning = true;
+            btnStartScan.setText("Stop Scanning");
+            updateReaderStatus("Scanning...");
+            Log.d(TAG, "Inventory started");
+        } catch (InvalidUsageException e) {
+            Log.e(TAG, "InvalidUsageException: " + e.getMessage());
+            Toast.makeText(this, "Error starting scan: " + e.getInfo(), Toast.LENGTH_SHORT).show();
+        } catch (OperationFailureException e) {
+            Log.e(TAG, "OperationFailureException: " + e.getMessage());
+            Toast.makeText(this, "Scan failed: " + e.getResults().toString(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void stopInventory() {
-        if (!RFID_SDK_AVAILABLE) return;
-        // TODO: Implement when SDK is available
+        if (reader == null || !reader.isConnected()) return;
+
+        try {
+            reader.Actions.Inventory.stop();
+            isInventoryRunning = false;
+            btnStartScan.setText("Start Scanning");
+            updateReaderStatus("Connected: " + reader.getHostName());
+            Log.d(TAG, "Inventory stopped");
+        } catch (InvalidUsageException e) {
+            Log.e(TAG, "InvalidUsageException: " + e.getMessage());
+        } catch (OperationFailureException e) {
+            Log.e(TAG, "OperationFailureException: " + e.getMessage());
+        }
     }
 
-    // ========== UI and Export Methods ==========
+    // RfidEventsListener implementation
+    @Override
+    public void eventReadNotify(RfidReadEvents e) {
+        TagData[] tags = reader.Actions.getReadTags(100);
+        if (tags != null) {
+            for (TagData tag : tags) {
+                final String epc = tag.getTagID();
+                if (epc != null && !scannedEpcs.contains(epc)) {
+                    scannedEpcs.add(epc);
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            addScanItem(epc);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    @Override
+    public void eventStatusNotify(RfidStatusEvents e) {
+        final STATUS_EVENT_TYPE eventType = e.StatusEventData.getStatusEventType();
+        Log.d(TAG, "Status event: " + eventType);
+        
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (eventType == STATUS_EVENT_TYPE.INVENTORY_START_EVENT) {
+                    updateReaderStatus("Scanning...");
+                } else if (eventType == STATUS_EVENT_TYPE.INVENTORY_STOP_EVENT) {
+                    isInventoryRunning = false;
+                    btnStartScan.setText("Start Scanning");
+                    if (isReaderConnected && reader != null) {
+                        updateReaderStatus("Connected: " + reader.getHostName());
+                    }
+                } else if (eventType == STATUS_EVENT_TYPE.DISCONNECTION_EVENT) {
+                    isReaderConnected = false;
+                    isInventoryRunning = false;
+                    updateReaderStatus("Disconnected");
+                    btnConnect.setText("Connect");
+                    btnStartScan.setEnabled(false);
+                    Toast.makeText(RfidScanActivity.this, "Reader disconnected", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
 
     private void addScanItem(String epc) {
         ScanItem item = new ScanItem(epc, "", userName);
@@ -302,77 +470,21 @@ public class RfidScanActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Cleanup RFID resources when SDK is enabled
+        try {
+            if (reader != null) {
+                if (isInventoryRunning) {
+                    reader.Actions.Inventory.stop();
+                }
+                reader.Events.removeEventsListener(this);
+                reader.disconnect();
+                reader = null;
+            }
+            if (readers != null) {
+                readers.Dispose();
+                readers = null;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onDestroy: " + e.getMessage());
+        }
     }
 }
-
-/*
- * ========== FULL RFID SDK IMPLEMENTATION ==========
- * 
- * Once you have installed the Zebra RFID SDK:
- * 1. Uncomment the imports at the top of this file
- * 2. Change RFID_SDK_AVAILABLE to true
- * 3. Implement RfidEventsListener interface
- * 4. Replace the placeholder methods above with this implementation:
- *
- * private Readers readers;
- * private RFIDReader reader;
- *
- * private void initReaders() {
- *     try {
- *         readers = new Readers(this, ENUM_TRANSPORT.ALL);
- *     } catch (Exception e) {
- *         Log.e(TAG, "Error initializing readers: " + e.getMessage());
- *     }
- * }
- *
- * private void connectReader() {
- *     new AsyncTask<Void, Void, String>() {
- *         @Override
- *         protected String doInBackground(Void... voids) {
- *             try {
- *                 if (readers == null) {
- *                     readers = new Readers(RfidScanActivity.this, ENUM_TRANSPORT.ALL);
- *                 }
- *                 ArrayList<ReaderDevice> availableReaders = readers.GetAvailableRFIDReaderList();
- *                 if (availableReaders == null || availableReaders.isEmpty()) {
- *                     return "No RFID readers found. Please connect RFD40.";
- *                 }
- *                 ReaderDevice readerDevice = availableReaders.get(0);
- *                 reader = readerDevice.getRFIDReader();
- *                 if (!reader.isConnected()) {
- *                     reader.connect();
- *                 }
- *                 if (reader.isConnected()) {
- *                     configureReader();
- *                     return null;
- *                 } else {
- *                     return "Failed to connect to reader";
- *                 }
- *             } catch (Exception e) {
- *                 return "Error: " + e.getMessage();
- *             }
- *         }
- *         // ... handle result in onPostExecute
- *     }.execute();
- * }
- *
- * @Override
- * public void eventReadNotify(RfidReadEvents e) {
- *     TagData[] tags = reader.Actions.getReadTags(100);
- *     if (tags != null) {
- *         for (TagData tag : tags) {
- *             final String epc = tag.getTagID();
- *             if (epc != null && !scannedEpcs.contains(epc)) {
- *                 scannedEpcs.add(epc);
- *                 uiHandler.post(() -> addScanItem(epc));
- *             }
- *         }
- *     }
- * }
- *
- * @Override
- * public void eventStatusNotify(RfidStatusEvents e) {
- *     // Handle status events
- * }
- */
