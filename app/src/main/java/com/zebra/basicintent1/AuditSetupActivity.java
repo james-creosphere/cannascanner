@@ -6,13 +6,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 public class AuditSetupActivity extends AppCompatActivity {
 
     private EditText etUserName;
-    private EditText etRoom;
+    private Spinner spinnerRoom;
     private String auditMode;
 
     @Override
@@ -40,22 +41,24 @@ public class AuditSetupActivity extends AppCompatActivity {
         }
 
         etUserName = findViewById(R.id.etUserName);
-        etRoom = findViewById(R.id.etRoom);
+        spinnerRoom = findViewById(R.id.spinnerRoom);
         Button btnStartAudit = findViewById(R.id.btnStartAudit);
 
         btnStartAudit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String userName = etUserName.getText().toString().trim();
-                String room = etRoom.getText().toString().trim();
+                int roomPosition = spinnerRoom.getSelectedItemPosition();
+                String room = spinnerRoom.getSelectedItem().toString();
                 
                 if (userName.isEmpty()) {
                     Toast.makeText(AuditSetupActivity.this, "Please enter your full name", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 
-                if (room.isEmpty()) {
-                    Toast.makeText(AuditSetupActivity.this, "Please enter the room", Toast.LENGTH_SHORT).show();
+                // Position 0 is "Select Room..." placeholder
+                if (roomPosition == 0) {
+                    Toast.makeText(AuditSetupActivity.this, "Please select a room", Toast.LENGTH_SHORT).show();
                     return;
                 }
 

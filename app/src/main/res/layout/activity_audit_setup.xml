@@ -31,18 +31,29 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvInstructions" />
 
-    <EditText
-        android:id="@+id/etRoom"
+    <TextView
+        android:id="@+id/tvRoomLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Room"
-        android:inputType="text"
-        android:textSize="18sp"
-        android:padding="16dp"
+        android:text="Room"
+        android:textSize="14sp"
+        android:textColor="#666666"
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/etUserName" />
+
+    <Spinner
+        android:id="@+id/spinnerRoom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:entries="@array/room_options"
+        android:padding="12dp"
+        android:background="@android:drawable/btn_dropdown"
+        android:layout_marginTop="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvRoomLabel" />
 
     <Button
         android:id="@+id/btnStartAudit"
@@ -54,6 +65,6 @@
         android:layout_marginTop="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/etRoom" />
+        app:layout_constraintTop_toBottomOf="@id/spinnerRoom" />
 
 </android.support.constraint.ConstraintLayout>

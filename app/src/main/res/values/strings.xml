@@ -13,4 +13,15 @@
     <string name="datawedge_intent_key_source">com.symbol.datawedge.source</string>
     <string name="datawedge_intent_key_label_type">com.symbol.datawedge.label_type</string>
     <string name="datawedge_intent_key_data">com.symbol.datawedge.data_string</string>
+    
+    <string-array name="room_options">
+        <item>Select Room...</item>
+        <item>Vault</item>
+        <item>Nursery</item>
+        <item>Field</item>
+        <item>Office</item>
+        <item>Production Room</item>
+        <item>Barn</item>
+        <item>Prop Room</item>
+    </string-array>
 </resources>
